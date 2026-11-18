@@ -86,6 +86,7 @@ export class Game {
     this.health = s.health ?? 100;
     this.player.x = s.px ?? 420; this.player.y = s.py ?? 390;
     if (s.missions) this.missions.completedIds = [...s.missions];
+    if (s.stashes) this.missions.stashes.forEach((st, i) => { st.taken = !!s.stashes[i]; });
     if (s.stats) this.stats = { ...this.stats, ...s.stats };
     if (s.missionId && s.missionId !== 'freeroam' && this.missions.defs.has(s.missionId)) {
       this.missions.start(s.missionId);
@@ -98,7 +99,9 @@ export class Game {
       seed: this.seed, cash: this.cash, health: this.health,
       px: this.player.x, py: this.player.y,
       missionId: this.missions.current ? this.missions.current.id : 'freeroam',
-      missions: this.missions.completedIds, stats: this.stats,
+      missions: this.missions.completedIds,
+      stashes: this.missions.stashes.map((s) => s.taken),
+      stats: this.stats,
     });
     this.hud.flashHint(ok ? 'Game saved' : 'Save failed');
     return ok;
@@ -303,8 +306,12 @@ export class Game {
       p.angle = Math.atan2(mw.y - p.y, mw.x - p.x);
       if (inp.mouseDown) this.combat.playerShot(mw.x, mw.y);
       if (inp.wasPressed('e')) {
-        const car = this.nearestStealable();
-        if (car) this.stealCar(car);
+        // Missions get first refusal on E (e.g. grabbing a package);
+        // otherwise E steals the nearest car.
+        if (!this.missions.tryInteract()) {
+          const car = this.nearestStealable();
+          if (car) this.stealCar(car);
+        }
       }
       this.sfx.engine(false);
     }
@@ -537,6 +544,17 @@ export class Game {
         ctx.textAlign = 'left';
       }
     }
+    // Hidden cash stashes (green money bags).
+    for (const s of this.missions.stashes) {
+      if (s.taken) continue;
+      if (s.x < vx0 - 30 || s.x > vx1 + 30 || s.y < vy0 - 30 || s.y > vy1 + 30) continue;
+      ctx.fillStyle = '#1e8449';
+      ctx.beginPath(); ctx.roundRect(s.x - 10, s.y - 12, 20, 24, 5); ctx.fill();
+      ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('$', s.x, s.y + 5);
+      ctx.textAlign = 'left';
+    }
     // Cars.
     for (const car of this.allCars()) {
       if (car.x < vx0 - 80 || car.x > vx1 + 80 || car.y < vy0 - 80 || car.y > vy1 + 80) continue;
@@ -668,6 +686,8 @@ export class Game {
       carHealth: this.playerCar ? Math.round(this.playerCar.health) : null,
       mission: this.missions.missionName(),
       objective: this.missions.objectiveText(),
+      missionsDone: this.missions.completedIds.length,
+      stashesLeft: this.missions.stashes.filter((s) => !s.taken).length,
       cops: this.police.cops.filter((c) => c.alive).length,
       cruisers: this.police.cruisers.filter((c) => !c.wrecked).length,
       peds: this.peds.filter((p) => p.alive).length,
