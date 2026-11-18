@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLMAR — Streets of the Sun</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0b0e14; overflow: hidden; height: 100%; }
+  #game { display: block; width: 100vw; height: 100vh; cursor: crosshair; image-rendering: auto; }
+  #fallback { color: #ffd166; font-family: sans-serif; text-align: center; padding-top: 40vh; display: none; }
+</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+<div id="fallback">SOLMAR needs JavaScript and canvas to run.</div>
+<script type="module" src="./src/boot.js"></script>
+</body>
+</html>
